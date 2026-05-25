@@ -12,6 +12,7 @@ import {
   buildOpponentMoveMessage,
   buildMissingMessage,
 } from '@/lib/buildUserMessage'
+import { parseMove } from '@/lib/parseMove'
 
 export default function ChessInterface() {
   const [chess] = useState(() => new Chess())
@@ -61,15 +62,10 @@ export default function ChessInterface() {
     if (!raw) return
     setMoveError('')
 
-    let result
-    try {
-      result = chess.move(raw, { strict: false })
-    } catch {
-      result = null
-    }
+    const result = parseMove(raw, chess)
 
     if (!result) {
-      setMoveError(`"${raw}" isn't a valid move in this position.`)
+      setMoveError(`Couldn't understand "${raw}" as a move in this position. Try "bishop to e4", "knight takes d5", or standard notation like "Nf3".`)
       return
     }
 
@@ -90,6 +86,10 @@ export default function ChessInterface() {
   function handleMissingClick() {
     const text = buildMissingMessage(chess.fen(), chess.history())
     sendMessage({ role: 'user', parts: [{ type: 'text', text }] })
+  }
+
+  function handleDialogue(question: string) {
+    sendMessage({ role: 'user', parts: [{ type: 'text', text: question }] })
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -168,7 +168,7 @@ export default function ChessInterface() {
             value={moveInput}
             onChange={e => setMoveInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="e.g. e4, Nf3, O-O"
+            placeholder='e.g. "bishop takes d5", "knight to f3", "e4"'
             className="flex-1 px-3 py-2 text-sm rounded-md border border-input bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           />
           <SpeechInput
@@ -198,6 +198,7 @@ export default function ChessInterface() {
           messages={messages}
           status={status}
           onMissing={handleMissingClick}
+          onDialogue={handleDialogue}
           isSpeaking={isSpeaking}
           onStopSpeaking={stopSpeaking}
         />
